@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0a">
+<title>75 HARD — Accountability</title>
+
+<!-- ============================================================= -->
+<!--  STEP 1: paste your Supabase project URL + anon key below.     -->
+<!--  You get these from Supabase > Project Settings > API.         -->
+<!-- ============================================================= -->
+<script>
+  const SUPABASE_URL  = "https://icjliejypthqgufrcmjk.supabase.co/rest/v1/";
+  const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljamxpZWp5cHRocWd1ZnJjbWprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MzQxNDMsImV4cCI6MjA5NTUxMDE0M30.18jBHjt32uoumRRd76jmzuxwBCytjP4XmwxWgVI7Yho";
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700;800&display=swap');
+
+  :root{
+    --bg:#0a0a0a; --panel:#141414; --panel-2:#1c1c1c; --line:#2a2a2a;
+    --txt:#f2f2f2; --muted:#888; --accent:#ff3b1d; --accent-2:#ffd400; --green:#2ecc71;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{
+    background:var(--bg); color:var(--txt); font-family:'Archivo',sans-serif; min-height:100vh;
+    background-image:radial-gradient(circle at 20% 0%,rgba(255,59,29,.08),transparent 40%),
+                     radial-gradient(circle at 90% 100%,rgba(255,212,0,.05),transparent 45%);
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:24px 16px 80px;}
+  .topbar{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:28px;}
+  .logo{line-height:.82;}
+  .logo .num{font-family:'Anton',sans-serif;font-size:clamp(44px,12vw,90px);letter-spacing:1px;color:var(--txt);}
+  .logo .num em{font-style:normal;color:var(--accent);}
+  .logo .sub{font-family:'Anton',sans-serif;letter-spacing:6px;font-size:clamp(14px,3.5vw,20px);color:var(--accent-2);margin-top:6px;}
+  .whoami{text-align:right;font-size:13px;color:var(--muted);}
+  .whoami b{color:var(--txt);display:block;font-size:15px;}
+  .whoami button{background:none;border:none;color:var(--accent);font-size:12px;cursor:pointer;text-decoration:underline;padding:4px 0 0;font-family:inherit;}
+
+  .gate{max-width:440px;margin:8vh auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:32px 26px;}
+  .gate h2{font-family:'Anton',sans-serif;font-size:26px;letter-spacing:1px;margin-bottom:6px;}
+  .gate p{color:var(--muted);font-size:14px;margin-bottom:20px;line-height:1.5;}
+  .gate label{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);display:block;margin-bottom:8px;}
+  input[type=text],input[type=date]{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--txt);padding:13px 14px;border-radius:10px;font-size:15px;font-family:inherit;margin-bottom:18px;}
+  input:focus{outline:none;border-color:var(--accent);}
+  .btn{width:100%;background:var(--accent);color:#fff;border:none;padding:14px;border-radius:10px;font-family:'Archivo',sans-serif;font-weight:800;font-size:15px;letter-spacing:.5px;cursor:pointer;text-transform:uppercase;transition:transform .1s,filter .15s;}
+  .btn:hover{filter:brightness(1.1);}
+  .btn:active{transform:scale(.98);}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .existing{margin-top:18px;}
+  .existing .pill{display:inline-block;background:var(--panel-2);border:1px solid var(--line);padding:7px 12px;border-radius:20px;font-size:13px;margin:4px 6px 0 0;cursor:pointer;}
+  .existing .pill:hover{border-color:var(--accent);}
+
+  .myday{background:linear-gradient(145deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:18px;padding:22px;margin-bottom:26px;position:relative;overflow:hidden;}
+  .myday::before{content:'';position:absolute;top:0;right:0;width:160px;height:160px;background:radial-gradient(circle,rgba(255,59,29,.18),transparent 70%);}
+  .myday .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;position:relative;}
+  .myday .hd h3{font-family:'Anton',sans-serif;letter-spacing:1px;font-size:20px;}
+  .daybadge{font-family:'Anton',sans-serif;background:var(--accent-2);color:#111;padding:4px 12px;border-radius:8px;font-size:14px;letter-spacing:1px;}
+
+  .tasks{display:grid;gap:10px;}
+  .task{display:flex;align-items:center;gap:13px;background:var(--bg);border:1px solid var(--line);padding:13px 15px;border-radius:12px;cursor:pointer;transition:border-color .15s,background .15s;}
+  .task:hover{border-color:#3a3a3a;}
+  .task.done{border-color:rgba(46,204,113,.5);background:rgba(46,204,113,.07);}
+  .check{width:24px;height:24px;border-radius:7px;border:2px solid var(--muted);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+  .task.done .check{background:var(--green);border-color:var(--green);}
+  .check svg{width:14px;height:14px;opacity:0;transition:opacity .15s;}
+  .task.done .check svg{opacity:1;}
+  .task .label{font-size:15px;font-weight:500;}
+  .task.done .label{color:var(--muted);text-decoration:line-through;}
+
+  .section-title{font-family:'Anton',sans-serif;letter-spacing:2px;font-size:15px;color:var(--muted);margin:0 4px 14px;text-transform:uppercase;}
+  .crew{display:grid;gap:14px;}
+  .friend{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;}
+  .friend .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .friend .who{display:flex;align-items:center;gap:11px;}
+  .avatar{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Anton',sans-serif;font-size:18px;color:#111;}
+  .friend .name{font-weight:700;font-size:16px;}
+  .friend .streak{font-size:12px;color:var(--muted);}
+  .friend .pct{font-family:'Anton',sans-serif;font-size:22px;}
+  .pct.full{color:var(--green);}
+  .pct.zero{color:var(--accent);}
+  .dots{display:flex;gap:6px;flex-wrap:wrap;}
+  .dot{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;background:var(--panel-2);padding:5px 9px;border-radius:7px;}
+  .dot .ic{width:13px;height:13px;border-radius:50%;background:#444;flex-shrink:0;}
+  .dot.on .ic{background:var(--green);}
+  .dot.on{color:var(--txt);}
+  .stale{font-size:11px;color:var(--accent-2);margin-top:9px;}
+
+  .empty{text-align:center;color:var(--muted);padding:30px;font-size:14px;}
+  .loading{text-align:center;padding:60px;color:var(--muted);}
+  .note{font-size:12px;color:var(--muted);text-align:center;margin-top:24px;line-height:1.5;}
+  .livedot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:6px;animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+  .config-error{max-width:520px;margin:10vh auto;background:var(--panel);border:1px solid var(--accent);border-radius:16px;padding:28px;}
+  .config-error h2{font-family:'Anton',sans-serif;color:var(--accent);margin-bottom:12px;letter-spacing:1px;}
+  .config-error p{color:var(--muted);line-height:1.6;font-size:14px;}
+  .config-error code{background:var(--panel-2);padding:2px 6px;border-radius:5px;color:var(--accent-2);}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef } = React;
+
+const TASKS = [
+  { id:'diet',  label:'Follow the diet (no cheats, no alcohol)' },
+  { id:'work1', label:'45-min workout #1' },
+  { id:'work2', label:'45-min workout #2 (outdoors)' },
+  { id:'water', label:'Drink 1 gallon of water' },
+  { id:'read',  label:'Read 10 pages (non-fiction)' },
+  { id:'photo', label:'Take a progress photo' },
+];
+const COLORS=['#ff3b1d','#ffd400','#2ecc71','#3498db','#9b59b6','#e67e22','#1ab7c5','#ff6fae'];
+const todayKey=()=>new Date().toISOString().slice(0,10);
+
+function dayNumber(startISO){
+  if(!startISO) return 1;
+  const start=new Date(startISO+'T00:00:00');
+  const now=new Date(todayKey()+'T00:00:00');
+  const diff=Math.floor((now-start)/86400000);
+  return Math.min(75,Math.max(1,diff+1));
+}
+
+const configured = SUPABASE_URL && !SUPABASE_URL.includes("PASTE") && SUPABASE_ANON && !SUPABASE_ANON.includes("PASTE");
+const sb = configured ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON) : null;
+
+function App(){
+  const [me,setMe]=useState(localStorage.getItem('me75')||null);
+  const [members,setMembers]=useState([]);   // {name,color,start_date}
+  const [progress,setProgress]=useState({}); // name -> {tasks:{}, day}
+  const [loading,setLoading]=useState(true);
+  const [nameInput,setNameInput]=useState('');
+  const [startInput,setStartInput]=useState(todayKey());
+  const [busy,setBusy]=useState(false);
+
+  const loadAll=useCallback(async()=>{
+    if(!sb) return;
+    const { data:mem } = await sb.from('members').select('*');
+    setMembers(mem||[]);
+    const tk=todayKey();
+    const { data:prog } = await sb.from('progress').select('*').eq('day_key',tk);
+    const map={};
+    (prog||[]).forEach(p=>{ map[p.name]=p.tasks||{}; });
+    setProgress(map);
+    setLoading(false);
+  },[]);
+
+  useEffect(()=>{
+    if(!sb){ setLoading(false); return; }
+    loadAll();
+    // realtime: re-pull whenever anything changes
+    const ch=sb.channel('room')
+      .on('postgres_changes',{event:'*',schema:'public',table:'progress'},loadAll)
+      .on('postgres_changes',{event:'*',schema:'public',table:'members'},loadAll)
+      .subscribe();
+    const poll=setInterval(loadAll,15000); // safety net + daily rollover
+    return ()=>{ sb.removeChannel(ch); clearInterval(poll); };
+  },[loadAll]);
+
+  async function join(name,start){
+    name=(name||'').trim();
+    if(!name||!sb) return;
+    setBusy(true);
+    const existing=members.find(m=>m.name.toLowerCase()===name.toLowerCase());
+    if(!existing){
+      const color=COLORS[members.length%COLORS.length];
+      await sb.from('members').upsert({name,color,start_date:start},{onConflict:'name'});
+    }
+    localStorage.setItem('me75',name);
+    setMe(name);
+    await loadAll();
+    setBusy(false);
+  }
+
+  async function toggle(taskId){
+    if(!sb) return;
+    const tk=todayKey();
+    const current={...(progress[me]||{})};
+    current[taskId]=!current[taskId];
+    setProgress(p=>({...p,[me]:current})); // optimistic
+    await sb.from('progress').upsert(
+      {name:me,day_key:tk,tasks:current,updated_at:new Date().toISOString()},
+      {onConflict:'name,day_key'}
+    );
+  }
+
+  if(!configured){
+    return (
+      <div className="config-error">
+        <h2>SETUP NEEDED</h2>
+        <p>This app needs your Supabase keys before it works. Open <code>index.html</code> and replace
+        <code>PASTE_YOUR_SUPABASE_URL_HERE</code> and <code>PASTE_YOUR_ANON_KEY_HERE</code> near the top
+        with the values from your Supabase project (Project Settings &rarr; API). The setup guide that came
+        with this file walks through every step.</p>
+      </div>
+    );
+  }
+
+  if(loading) return <div className="loading">Loading the crew…</div>;
+
+  if(!me){
+    return (
+      <div className="wrap">
+        <div className="gate">
+          <h2>JOIN THE GRIND</h2>
+          <p>Pick your name so your crew can hold you accountable. Everyone here sees everyone's daily checklist, live.</p>
+          <label>Your name</label>
+          <input type="text" value={nameInput} placeholder="e.g. Brandon" onChange={e=>setNameInput(e.target.value)}/>
+          <label>Your start date</label>
+          <input type="date" value={startInput} onChange={e=>setStartInput(e.target.value)}/>
+          <button className="btn" disabled={busy} onClick={()=>join(nameInput,startInput)}>
+            {busy?'Joining…':'Start Day 1'}
+          </button>
+          {members.length>0&&(
+            <div className="existing">
+              <label>Already joined? Tap your name</label>
+              {members.map(m=>(
+                <span key={m.name} className="pill" onClick={()=>join(m.name,m.start_date)}>{m.name}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const meEntry=members.find(m=>m.name===me)||{};
+  const myTasks=progress[me]||{};
+  const others=members.filter(m=>m.name!==me);
+
+  return (
+    <div className="wrap">
+      <div className="topbar">
+        <div className="logo">
+          <div className="num">75 <em>HARD</em></div>
+          <div className="sub"><span className="livedot"></span>LIVE</div>
+        </div>
+        <div className="whoami">
+          you are<b>{me}</b>
+          <button onClick={()=>{localStorage.removeItem('me75');setMe(null);}}>switch</button>
+        </div>
+      </div>
+
+      <div className="myday">
+        <div className="hd">
+          <h3>Today's Checklist</h3>
+          <span className="daybadge">DAY {dayNumber(meEntry.start_date)} / 75</span>
+        </div>
+        <div className="tasks">
+          {TASKS.map(t=>{
+            const done=!!myTasks[t.id];
+            return (
+              <div key={t.id} className={'task'+(done?' done':'')} onClick={()=>toggle(t.id)}>
+                <div className="check">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5">
+                    <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <span className="label">{t.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="section-title">The Crew Today</div>
+      <div className="crew">
+        {others.length===0&&(
+          <div className="empty">No one else has joined yet. Send your friends the link and have them pick a name.</div>
+        )}
+        {others.map(m=>{
+          const t=progress[m.name]||{};
+          const done=TASKS.filter(x=>t[x.id]).length;
+          const pct=Math.round(done/TASKS.length*100);
+          const noCheckin=!progress[m.name];
+          return (
+            <div key={m.name} className="friend">
+              <div className="top">
+                <div className="who">
+                  <div className="avatar" style={{background:m.color}}>{m.name[0].toUpperCase()}</div>
+                  <div>
+                    <div className="name">{m.name}</div>
+                    <div className="streak">Day {dayNumber(m.start_date)} / 75</div>
+                  </div>
+                </div>
+                <div className={'pct '+(pct===100?'full':pct===0?'zero':'')}>{done}/6</div>
+              </div>
+              <div className="dots">
+                {TASKS.map(x=>(
+                  <div key={x.id} className={'dot'+(t[x.id]?' on':'')}>
+                    <span className="ic"></span>{x.label.split(' ')[0].replace(/[^A-Za-z0-9-]/g,'')}
+                  </div>
+                ))}
+              </div>
+              {noCheckin&&<div className="stale">⚠ Hasn't checked in today yet</div>}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="note">
+        Live shared tracker — everyone who opens this link and picks a name syncs in real time.<br/>
+        Checklists reset each day automatically. Don't break the chain.
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
