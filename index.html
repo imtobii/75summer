@@ -6,10 +6,6 @@
 <meta name="theme-color" content="#0a0a0a">
 <title>75 SUMMER</title>
 
-<!-- ============================================================= -->
-<!--  STEP 1: paste your Supabase project URL + anon key below.     -->
-<!--  You get these from Supabase > Project Settings > API.         -->
-<!-- ============================================================= -->
 <script>
   const SUPABASE_URL  = "https://icjliejypthqgufrcmjk.supabase.co";
   const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljamxpZWp5cHRocWd1ZnJjbWprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MzQxNDMsImV4cCI6MjA5NTUxMDE0M30.18jBHjt32uoumRRd76jmzuxwBCytjP4XmwxWgVI7Yho";
@@ -48,12 +44,16 @@
   .gate h2{font-family:'Anton',sans-serif;font-size:26px;letter-spacing:1px;margin-bottom:6px;}
   .gate p{color:var(--muted);font-size:14px;margin-bottom:20px;line-height:1.5;}
   .gate label{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);display:block;margin-bottom:8px;}
-  input[type=text],input[type=date]{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--txt);padding:13px 14px;border-radius:10px;font-size:15px;font-family:inherit;margin-bottom:18px;}
+  input[type=text],input[type=date],input[type=password]{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--txt);padding:13px 14px;border-radius:10px;font-size:15px;font-family:inherit;margin-bottom:18px;}
   input:focus{outline:none;border-color:var(--accent);}
+  input[readonly]{opacity:.55;cursor:default;}
   .btn{width:100%;background:var(--accent);color:#fff;border:none;padding:14px;border-radius:10px;font-family:'Archivo',sans-serif;font-weight:800;font-size:15px;letter-spacing:.5px;cursor:pointer;text-transform:uppercase;transition:transform .1s,filter .15s;}
   .btn:hover{filter:brightness(1.1);}
   .btn:active{transform:scale(.98);}
   .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .gate-back{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:0 0 20px;display:flex;align-items:center;gap:5px;font-family:inherit;}
+  .gate-back:hover{color:var(--txt);}
+  .pin-error{color:var(--accent);font-size:13px;margin-bottom:16px;padding:9px 12px;background:rgba(255,59,29,.1);border-radius:8px;border:1px solid rgba(255,59,29,.2);}
   .existing{margin-top:18px;}
   .existing .pill{display:inline-block;background:var(--panel-2);border:1px solid var(--line);padding:7px 12px;border-radius:20px;font-size:13px;margin:4px 6px 0 0;cursor:pointer;}
   .existing .pill:hover{border-color:var(--accent);}
@@ -132,7 +132,7 @@
 <div id="root"></div>
 
 <script type="text/babel">
-const { useState, useEffect, useCallback, useRef } = React;
+const { useState, useEffect, useCallback } = React;
 
 const TASKS = [
   { id:'diet',  label:'Follow the diet (no cheats, no alcohol)' },
@@ -167,6 +167,11 @@ function calcStreak(history){
     }
   }
   return streak;
+}
+
+async function sha256(str){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
 const configured = SUPABASE_URL && !SUPABASE_URL.includes("PASTE") && SUPABASE_ANON && !SUPABASE_ANON.includes("PASTE");
@@ -230,7 +235,6 @@ function ProfileView({ member, todayProgress, history, historyLoading, onBack })
   return (
     <div className="wrap">
       <button className="back-btn" onClick={onBack}>← Back</button>
-
       <div className="profile-header">
         <div className="avatar big-avatar" style={{background:member.color}}>{member.name[0].toUpperCase()}</div>
         <div>
@@ -238,7 +242,6 @@ function ProfileView({ member, todayProgress, history, historyLoading, onBack })
           <div className="profile-day">Day {dayNumber(member.start_date)} / 75</div>
         </div>
       </div>
-
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-num" style={{color:'var(--accent-2)'}}>{streak}</div>
@@ -257,7 +260,6 @@ function ProfileView({ member, todayProgress, history, historyLoading, onBack })
           <div className="stat-label">Today</div>
         </div>
       </div>
-
       <div className="section-title">Today's Tasks</div>
       {noCheckin&&<div className="stale" style={{marginBottom:'12px'}}>⚠ Hasn't checked in today yet</div>}
       <div className="profile-tasks" style={{marginBottom:'26px'}}>
@@ -273,7 +275,6 @@ function ProfileView({ member, todayProgress, history, historyLoading, onBack })
           );
         })}
       </div>
-
       <div className="section-title">Activity History</div>
       {historyLoading
         ? <div className="loading" style={{padding:'20px'}}>Loading history…</div>
@@ -285,32 +286,70 @@ function ProfileView({ member, todayProgress, history, historyLoading, onBack })
 
 /* ── App ────────────────────────────────────────────────────── */
 function App(){
-  const [me,setMe]=useState(localStorage.getItem('me75')||null);
+  const [me,setMe]=useState(null);
   const [members,setMembers]=useState([]);
   const [progress,setProgress]=useState({});
   const [loading,setLoading]=useState(true);
+  const [busy,setBusy]=useState(false);
+
+  // Gate screens: 'home' | 'create' | 'verify' | 'set-pin'
+  const [screen,setScreen]=useState('home');
   const [nameInput,setNameInput]=useState('');
   const [startInput,setStartInput]=useState(todayKey());
-  const [busy,setBusy]=useState(false);
-  const [viewProfile,setViewProfile]=useState(null); // member object or null
+  const [pinInput,setPinInput]=useState('');
+  const [confirmPin,setConfirmPin]=useState('');
+  const [pinError,setPinError]=useState('');
+  const [gateTarget,setGateTarget]=useState(null); // existing member for verify/set-pin
+
+  // Profile
+  const [viewProfile,setViewProfile]=useState(null);
   const [memberHistory,setMemberHistory]=useState([]);
   const [historyLoading,setHistoryLoading]=useState(false);
 
   const loadAll=useCallback(async()=>{
     if(!sb) return;
-    const { data:mem } = await sb.from('members').select('*');
+    const { data:mem }=await sb.from('members').select('*');
     setMembers(mem||[]);
-    const tk=todayKey();
-    const { data:prog } = await sb.from('progress').select('*').eq('day_key',tk);
+    const { data:prog }=await sb.from('progress').select('*').eq('day_key',todayKey());
     const map={};
     (prog||[]).forEach(p=>{ map[p.name]=p.tasks||{}; });
     setProgress(map);
-    setLoading(false);
   },[]);
 
+  // Initial load + session restore
   useEffect(()=>{
     if(!sb){ setLoading(false); return; }
-    loadAll();
+    (async()=>{
+      const savedName=localStorage.getItem('me75');
+      const savedAuth=localStorage.getItem('me75_auth');
+      const { data:mem }=await sb.from('members').select('*');
+      setMembers(mem||[]);
+      const { data:prog }=await sb.from('progress').select('*').eq('day_key',todayKey());
+      const map={};
+      (prog||[]).forEach(p=>{ map[p.name]=p.tasks||{}; });
+      setProgress(map);
+      if(savedName){
+        const member=(mem||[]).find(m=>m.name===savedName);
+        if(member){
+          if(!member.pin_hash){
+            // Legacy account, no PIN yet — still let them in
+            setMe(savedName);
+          } else if(savedAuth&&savedAuth===member.pin_hash){
+            // Valid remembered session
+            setMe(savedName);
+          } else {
+            // PIN set but no valid auth token — require PIN on next load
+            localStorage.removeItem('me75');
+            localStorage.removeItem('me75_auth');
+          }
+        } else {
+          localStorage.removeItem('me75');
+          localStorage.removeItem('me75_auth');
+        }
+      }
+      setLoading(false);
+    })();
+
     const ch=sb.channel('room')
       .on('postgres_changes',{event:'*',schema:'public',table:'progress'},loadAll)
       .on('postgres_changes',{event:'*',schema:'public',table:'members'},loadAll)
@@ -319,18 +358,91 @@ function App(){
     return ()=>{ sb.removeChannel(ch); clearInterval(poll); };
   },[loadAll]);
 
-  async function join(name,start){
-    name=(name||'').trim();
-    if(!name||!sb) return;
-    setBusy(true);
-    const existing=members.find(m=>m.name.toLowerCase()===name.toLowerCase());
-    if(!existing){
-      const color=COLORS[members.length%COLORS.length];
-      await sb.from('members').upsert({name,color,start_date:start},{onConflict:'name'});
-    }
+  function resetGate(){
+    setScreen('home');
+    setNameInput('');
+    setPinInput('');
+    setConfirmPin('');
+    setPinError('');
+    setGateTarget(null);
+  }
+
+  function doLogin(name,pinHash){
     localStorage.setItem('me75',name);
+    localStorage.setItem('me75_auth',pinHash);
     setMe(name);
+    resetGate();
+  }
+
+  function doLogout(){
+    localStorage.removeItem('me75');
+    localStorage.removeItem('me75_auth');
+    setMe(null);
+    resetGate();
+  }
+
+  // Home: user typed a name and hit Continue
+  async function handleContinue(){
+    const name=nameInput.trim();
+    if(!name) return;
+    const existing=members.find(m=>m.name.toLowerCase()===name.toLowerCase());
+    setPinInput(''); setConfirmPin(''); setPinError('');
+    if(existing){
+      setGateTarget(existing);
+      setScreen(existing.pin_hash?'verify':'set-pin');
+    } else {
+      setGateTarget(null);
+      setScreen('create');
+    }
+  }
+
+  // Home: clicked an existing member pill
+  function handlePillClick(member){
+    setNameInput(member.name);
+    setGateTarget(member);
+    setPinInput(''); setConfirmPin(''); setPinError('');
+    setScreen(member.pin_hash?'verify':'set-pin');
+  }
+
+  // Create: new account with PIN
+  async function handleCreate(){
+    if(!pinInput){ setPinError('Enter a PIN'); return; }
+    if(pinInput.length<4){ setPinError('PIN must be at least 4 characters'); return; }
+    if(pinInput!==confirmPin){ setPinError("PINs don't match"); return; }
+    setBusy(true); setPinError('');
+    const name=nameInput.trim();
+    const hash=await sha256(pinInput);
+    const color=COLORS[members.length%COLORS.length];
+    await sb.from('members').upsert({name,color,start_date:startInput,pin_hash:hash},{onConflict:'name'});
     await loadAll();
+    doLogin(name,hash);
+    setBusy(false);
+  }
+
+  // Verify: returning user enters PIN
+  async function handleVerify(){
+    if(!pinInput){ setPinError('Enter your PIN'); return; }
+    setBusy(true); setPinError('');
+    const hash=await sha256(pinInput);
+    if(hash===gateTarget.pin_hash){
+      doLogin(gateTarget.name,hash);
+    } else {
+      setPinError('Incorrect PIN — try again');
+      setPinInput('');
+    }
+    setBusy(false);
+  }
+
+  // Set-pin: legacy user securing their account
+  async function handleSetPin(){
+    if(!pinInput){ setPinError('Enter a PIN'); return; }
+    if(pinInput.length<4){ setPinError('PIN must be at least 4 characters'); return; }
+    if(pinInput!==confirmPin){ setPinError("PINs don't match"); return; }
+    setBusy(true); setPinError('');
+    const hash=await sha256(pinInput);
+    await sb.from('members').update({pin_hash:hash}).eq('name',gateTarget.name);
+    await loadAll();
+    doLogin(gateTarget.name,hash);
     setBusy(false);
   }
 
@@ -349,52 +461,117 @@ function App(){
   async function openProfile(member){
     setViewProfile(member);
     setHistoryLoading(true);
-    const { data } = await sb.from('progress').select('*').eq('name',member.name).order('day_key',{ascending:true});
+    const { data }=await sb.from('progress').select('*').eq('name',member.name).order('day_key',{ascending:true});
     setMemberHistory(data||[]);
     setHistoryLoading(false);
   }
+
+  /* ── Render ── */
 
   if(!configured){
     return (
       <div className="config-error">
         <h2>SETUP NEEDED</h2>
-        <p>This app needs your Supabase keys before it works. Open <code>index.html</code> and replace
-        <code>PASTE_YOUR_SUPABASE_URL_HERE</code> and <code>PASTE_YOUR_ANON_KEY_HERE</code> near the top
-        with the values from your Supabase project (Project Settings &rarr; API). The setup guide that came
-        with this file walks through every step.</p>
+        <p>Replace <code>PASTE_YOUR_SUPABASE_URL_HERE</code> and <code>PASTE_YOUR_ANON_KEY_HERE</code> near
+        the top of this file with the values from Supabase → Project Settings → API.</p>
       </div>
     );
   }
 
   if(loading) return <div className="loading">Loading the crew…</div>;
 
+  /* ── Gate ── */
   if(!me){
     return (
       <div className="wrap">
         <div className="gate">
-          <h2>JOIN THE GRIND</h2>
-          <p>Pick your name so your crew can hold you accountable. Everyone here sees everyone's daily checklist, live.</p>
-          <label>Your name</label>
-          <input type="text" value={nameInput} placeholder="e.g. Brandon" onChange={e=>setNameInput(e.target.value)}/>
-          <label>Your start date</label>
-          <input type="date" value={startInput} onChange={e=>setStartInput(e.target.value)}/>
-          <button className="btn" disabled={busy} onClick={()=>join(nameInput,startInput)}>
-            {busy?'Joining…':'Start Day 1'}
-          </button>
-          {members.length>0&&(
-            <div className="existing">
-              <label>Already joined? Tap your name</label>
-              {members.map(m=>(
-                <span key={m.name} className="pill" onClick={()=>join(m.name,m.start_date)}>{m.name}</span>
-              ))}
-            </div>
+
+          {screen==='home'&&(
+            <>
+              <h2>JOIN THE GRIND</h2>
+              <p>Type your name to create an account or sign back in. Your crew sees your daily checklist live.</p>
+              <label>Your name</label>
+              <input type="text" value={nameInput} placeholder="e.g. Brandon"
+                onChange={e=>setNameInput(e.target.value)}
+                onKeyDown={e=>e.key==='Enter'&&handleContinue()}
+                autoFocus/>
+              <button className="btn" onClick={handleContinue}>Continue</button>
+              {members.length>0&&(
+                <div className="existing">
+                  <label>Returning? Tap your name</label>
+                  {members.map(m=>(
+                    <span key={m.name} className="pill" onClick={()=>handlePillClick(m)}>{m.name}</span>
+                  ))}
+                </div>
+              )}
+            </>
           )}
+
+          {screen==='create'&&(
+            <>
+              <button className="gate-back" onClick={()=>{ setScreen('home'); setPinInput(''); setConfirmPin(''); setPinError(''); }}>← Back</button>
+              <h2>CREATE ACCOUNT</h2>
+              <p>Set a PIN to protect your account. You'll need it on new devices.</p>
+              <label>Name</label>
+              <input type="text" value={nameInput} readOnly/>
+              <label>Your start date</label>
+              <input type="date" value={startInput} onChange={e=>setStartInput(e.target.value)}/>
+              <label>Create PIN (min 4 characters)</label>
+              <input type="password" value={pinInput} placeholder="••••••"
+                onChange={e=>setPinInput(e.target.value)} autoFocus/>
+              <label>Confirm PIN</label>
+              <input type="password" value={confirmPin} placeholder="••••••"
+                onChange={e=>setConfirmPin(e.target.value)}
+                onKeyDown={e=>e.key==='Enter'&&handleCreate()}/>
+              {pinError&&<div className="pin-error">{pinError}</div>}
+              <button className="btn" disabled={busy} onClick={handleCreate}>
+                {busy?'Creating…':'Create Account'}
+              </button>
+            </>
+          )}
+
+          {screen==='verify'&&(
+            <>
+              <button className="gate-back" onClick={()=>{ setScreen('home'); setPinInput(''); setPinError(''); }}>← Back</button>
+              <h2>WELCOME BACK</h2>
+              <p>Enter your PIN to sign in as <strong style={{color:'var(--txt)'}}>{gateTarget?.name}</strong>.</p>
+              <label>PIN</label>
+              <input type="password" value={pinInput} placeholder="••••••"
+                onChange={e=>setPinInput(e.target.value)}
+                onKeyDown={e=>e.key==='Enter'&&handleVerify()}
+                autoFocus/>
+              {pinError&&<div className="pin-error">{pinError}</div>}
+              <button className="btn" disabled={busy} onClick={handleVerify}>
+                {busy?'Verifying…':'Sign In'}
+              </button>
+            </>
+          )}
+
+          {screen==='set-pin'&&(
+            <>
+              <button className="gate-back" onClick={()=>{ setScreen('home'); setPinInput(''); setConfirmPin(''); setPinError(''); }}>← Back</button>
+              <h2>SECURE YOUR ACCOUNT</h2>
+              <p>Hey <strong style={{color:'var(--txt)'}}>{gateTarget?.name}</strong>! Create a PIN so only you can access your account from new devices.</p>
+              <label>Create PIN (min 4 characters)</label>
+              <input type="password" value={pinInput} placeholder="••••••"
+                onChange={e=>setPinInput(e.target.value)} autoFocus/>
+              <label>Confirm PIN</label>
+              <input type="password" value={confirmPin} placeholder="••••••"
+                onChange={e=>setConfirmPin(e.target.value)}
+                onKeyDown={e=>e.key==='Enter'&&handleSetPin()}/>
+              {pinError&&<div className="pin-error">{pinError}</div>}
+              <button className="btn" disabled={busy} onClick={handleSetPin}>
+                {busy?'Saving…':'Set PIN & Sign In'}
+              </button>
+            </>
+          )}
+
         </div>
       </div>
     );
   }
 
-  // Profile view for a crew member
+  /* ── Profile view ── */
   if(viewProfile){
     return (
       <ProfileView
@@ -407,6 +584,7 @@ function App(){
     );
   }
 
+  /* ── Main view ── */
   const meEntry=members.find(m=>m.name===me)||{};
   const myTasks=progress[me]||{};
   const others=members.filter(m=>m.name!==me);
@@ -421,7 +599,7 @@ function App(){
         <div className="whoami">
           you are<b>{me}</b>
           <button className="profile-link" onClick={()=>openProfile(meEntry)}>my profile</button>
-          <button onClick={()=>{localStorage.removeItem('me75');setMe(null);}}>switch</button>
+          <button onClick={doLogout}>sign out</button>
         </div>
       </div>
 
