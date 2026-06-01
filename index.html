@@ -251,7 +251,7 @@ function dayNumber(startISO){
   const start=new Date(startISO+'T00:00:00');
   const now=new Date(todayKey()+'T00:00:00');
   const diff=Math.floor((now-start)/86400000);
-  return Math.min(75,Math.max(1,diff+1));
+  return Math.min(150,Math.max(1,diff+1));
 }
 
 function calcStreak(history,tasks){
@@ -525,7 +525,7 @@ function Leaderboard({members,allHistory,progress,onOpenProfile}){
             <div className="avatar" style={{background:row.m.color}}>{row.m.name[0].toUpperCase()}</div>
             <div className="lb-info">
               <div className="lb-name">{row.m.name}</div>
-              <div className="lb-sub">Day {dayNumber(row.m.start_date)}/75 · {row.perfect} perfect days</div>
+              <div className="lb-sub">Day {dayNumber(row.m.start_date)}/150 · {row.perfect} perfect days</div>
             </div>
             <div className="lb-val" style={{color:valColor}}>{val}</div>
           </div>
@@ -539,7 +539,7 @@ function Leaderboard({members,allHistory,progress,onOpenProfile}){
 function HistoryGrid({member,history,tasks}){
   const start=new Date(member.start_date+'T00:00:00');
   const today=new Date(todayKey()+'T00:00:00');
-  const totalDays=Math.min(75,Math.floor((today-start)/86400000)+1);
+  const totalDays=Math.min(150,Math.floor((today-start)/86400000)+1);
   const map={};
   history.forEach(h=>{map[h.day_key]=h.tasks||{};});
   const days=[];
@@ -590,7 +590,7 @@ function ProfileView({member,todayProgress,history,historyLoading,onBack}){
         <div className="avatar big-avatar" style={{background:member.color}}>{member.name[0].toUpperCase()}</div>
         <div>
           <div className="profile-name">{member.name}</div>
-          <div className="profile-day">Day {dayNumber(member.start_date)} / 75</div>
+          <div className="profile-day">Day {dayNumber(member.start_date)} / 150</div>
         </div>
       </div>
       <div className="stats-grid">
@@ -928,7 +928,7 @@ function App(){
             {!editingTasks&&(
               <button className="edit-tasks-btn" onClick={()=>setEditingTasks(true)}>✏ edit tasks</button>
             )}
-            <span className="daybadge">DAY {dayNumber(meEntry.start_date)} / 75</span>
+            <span className="daybadge">DAY {dayNumber(meEntry.start_date)} / 150</span>
           </div>
         </div>
 
@@ -997,7 +997,7 @@ function App(){
                     <div className="avatar" style={{background:m.color}}>{m.name[0].toUpperCase()}</div>
                     <div>
                       <div className="name">{m.name}</div>
-                      <div className="streak">Day {dayNumber(m.start_date)} / 75</div>
+                      <div className="streak">Day {dayNumber(m.start_date)} / 150</div>
                     </div>
                   </div>
                   <div className={'pct '+(pct===100?'full':pct===0?'zero':'')}>{done}/{mTasks.length}</div>
